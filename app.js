@@ -7,7 +7,6 @@ import {
 import {
   getRedirectResult,
   onAuthStateChanged,
-  signInWithPopup,
   signInWithRedirect,
   signOut,
 } from "firebase/auth";
@@ -434,19 +433,9 @@ function getSignInErrorMessage(error) {
 $("#googleSignInBtn").addEventListener("click", async () => {
   $("#authError").textContent = "";
   try {
-    await signInWithPopup(auth, googleProvider);
+    await signInWithRedirect(auth, googleProvider);
   } catch (error) {
-    console.error("Google sign-in failed", error);
-    if (error.code === "auth/popup-blocked") {
-      try {
-        await signInWithRedirect(auth, googleProvider);
-        return;
-      } catch (redirectError) {
-        console.error("Google redirect sign-in failed", redirectError);
-        $("#authError").textContent = getSignInErrorMessage(redirectError);
-        return;
-      }
-    }
+    console.error("Google redirect sign-in failed", error);
     $("#authError").textContent = getSignInErrorMessage(error);
   }
 });
