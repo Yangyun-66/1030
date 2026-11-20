@@ -5,9 +5,8 @@ import {
   GoogleAIBackend,
 } from "firebase/ai";
 import {
-  getRedirectResult,
   onAuthStateChanged,
-  signInWithRedirect,
+  signInWithPopup,
   signOut,
 } from "firebase/auth";
 import {
@@ -424,6 +423,7 @@ function getSignInErrorMessage(error) {
   const messages = {
     "auth/unauthorized-domain": "此網站網域尚未加入 Firebase Authentication 的授權網域。",
     "auth/operation-not-allowed": "Firebase 尚未啟用 Google 登入，請檢查 Authentication 的登入方式設定。",
+    "auth/popup-blocked": "瀏覽器封鎖了 Google 登入視窗。請允許此網站開啟彈出式視窗後重試。",
     "auth/popup-closed-by-user": "登入視窗已關閉，請再按一次「使用 Google 登入」。",
     "auth/network-request-failed": "網路連線失敗，請確認網路後重試。",
   };
@@ -433,16 +433,11 @@ function getSignInErrorMessage(error) {
 $("#googleSignInBtn").addEventListener("click", async () => {
   $("#authError").textContent = "";
   try {
-    await signInWithRedirect(auth, googleProvider);
+    await signInWithPopup(auth, googleProvider);
   } catch (error) {
-    console.error("Google redirect sign-in failed", error);
+    console.error("Google sign-in failed", error);
     $("#authError").textContent = getSignInErrorMessage(error);
   }
-});
-
-getRedirectResult(auth).catch((error) => {
-  console.error("Google redirect sign-in result failed", error);
-  $("#authError").textContent = getSignInErrorMessage(error);
 });
 
 $("#signOutBtn").addEventListener("click", async () => {
