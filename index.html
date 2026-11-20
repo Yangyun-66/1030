@@ -23,6 +23,7 @@
     @media(max-width:980px){.app{grid-template-columns:70px minmax(0,1fr);padding:20px;gap:19px}.brand{justify-content:center;margin:5px 0 38px}.brand-name,.nav-label,.nav-text,.mini-note,.profile-info{display:none}.nav button{justify-content:center;padding:12px 0}.nav .ico{font-size:19px}.profile{justify-content:center;margin-inline:0}.grid{grid-template-columns:minmax(0,1fr) minmax(290px,.85fr)}}
     @media(max-width:700px){.app{display:block;padding:15px 14px 86px}.app aside{position:fixed;z-index:4;bottom:0;left:0;right:0;height:65px;min-height:0;background:#ffffffed;backdrop-filter:blur(12px);border-top:1px solid var(--line);display:block;padding:5px 11px}.brand,.nav-label,.sidebar-bottom{display:none}.nav{display:flex;justify-content:space-around;gap:2px}.nav button{width:56px;padding:7px 2px;display:grid;justify-items:center;gap:1px;font-size:9px}.nav .ico{font-size:17px}.nav-text{display:block}.topbar{margin:4px 2px 19px}.hello{font-size:22px}.top-actions{gap:7px}.primary{padding:0 11px;font-size:12px;height:39px}.icon-btn{height:39px;min-width:39px}.grid{display:flex;flex-direction:column;gap:15px}.column{display:contents}.today-card{order:1}.calendar-card{order:2}.habits-card{order:3}.card{padding:17px;border-radius:15px}.calendar-card{padding:17px 14px}.calendar td{height:52px}.habits{grid-template-columns:repeat(3,1fr)}.item{grid-template-columns:46px 17px minmax(0,1fr) auto;gap:7px}.tag{font-size:9px;padding:4px 6px}}
     @media(max-width:380px){.item{grid-template-columns:39px 16px minmax(0,1fr)}.item>.item-actions>.tag{display:none}.habits{gap:6px}.habit{padding:10px 8px}}
+    .profile{min-width:0}.profile-info{min-width:0;overflow:hidden}.profile-info strong,.profile-info small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.signout{border:0;background:none;color:var(--muted);font-size:11px;padding:5px}.auth-gate{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:20px;background:#1e3028b8;backdrop-filter:blur(5px)}.auth-gate[hidden]{display:none}.auth-card{width:min(420px,100%);background:white;border-radius:20px;padding:32px;box-shadow:0 24px 80px #1114;text-align:center}.auth-card h1{margin:0 0 10px;font-size:24px}.auth-card p{color:#718078;margin:0 0 22px}.auth-card .primary{height:auto;min-height:44px}.auth-error{margin-top:14px;color:#b94c3e;font-size:13px}
   </style>
 </head>
 <body>
@@ -35,10 +36,10 @@
       <button data-view="calendar"><span class="ico">▣</span><span class="nav-text">月曆</span></button>
       <button data-view="habits"><span class="ico">◉</span><span class="nav-text">習慣</span></button>
     </nav>
-    <div class="sidebar-bottom"><div class="mini-note"><strong>今天，慢慢來 🌿</strong>完成一件重要的事<br>就很不錯了。</div><div class="profile"><div class="avatar">J</div><div class="profile-info">Jelena<small>個人空間</small></div></div></div>
+    <div class="sidebar-bottom"><div class="mini-note"><strong>今天，慢慢來 🌿</strong>完成一件重要的事<br>就很不錯了。</div><div class="profile"><div class="avatar" id="userAvatar">G</div><div class="profile-info"><strong id="userName">尚未登入</strong><small id="userStatus">登入以同步行程</small></div><button class="signout" id="signOutBtn" hidden>登出</button></div></div>
   </aside>
   <main>
-    <header class="topbar"><div><div class="date-overline" id="fullDate">星期五・2026 年 10 月 30 日</div><div class="hello">早安，Jelena <span>☀</span></div></div><div class="top-actions"><button class="icon-btn" id="bell" aria-label="查看提醒">♧<i class="badge"></i></button><button class="primary" id="addBtn">＋ 新增項目</button></div></header>
+    <header class="topbar"><div><div class="date-overline" id="fullDate"></div><div class="hello">早安，<span>讓今天慢慢展開 ☀</span></div></div><div class="top-actions"><button class="icon-btn" id="bell" aria-label="查看提醒">♧<i class="badge"></i></button><button class="primary" id="addBtn">＋ 新增項目</button></div></header>
     <div class="grid">
       <section class="column">
         <article class="card today-card" id="todayCard">
@@ -56,40 +57,16 @@
     </div>
   </main>
 </div>
+<div class="auth-gate" id="authGate">
+  <section class="auth-card" aria-labelledby="authTitle">
+    <h1 id="authTitle">登入以同步日常</h1>
+    <p>使用 Google 登入後，行程和習慣會安全地儲存到 Firebase，並在你的裝置間同步。</p>
+    <button class="primary" id="googleSignInBtn">使用 Google 帳戶登入</button>
+    <div class="auth-error" id="authError" role="status"></div>
+  </section>
+</div>
 <div class="toast" id="toast" role="status"></div>
 <dialog id="addDialog"><form class="modal" id="itemForm"><div class="modal-head"><strong>新增項目</strong><button type="button" id="closeDialog" aria-label="關閉">×</button></div><div class="field"><label for="itemTitle">項目名稱</label><input id="itemTitle" required placeholder="例如：準備簡報" /></div><div class="two-fields"><div class="field"><label for="itemType">類型</label><select id="itemType"><option value="task">待辦任務</option><option value="event">固定行程</option></select></div><div class="field"><label for="itemDate">日期</label><input id="itemDate" type="date" required /></div></div><div class="two-fields"><div class="field"><label for="itemTime">時間</label><input id="itemTime" type="time" value="10:00" /></div><div class="field"><label for="itemPriority">優先順序</label><select id="itemPriority"><option value="一般">一般</option><option value="高">高</option><option value="低">低</option></select></div></div><div class="field"><label for="itemReminder">頁面提醒</label><select id="itemReminder"><option value="none">不設定提醒</option><option value="at">在項目開始時提醒</option></select></div><div class="modal-actions"><button type="button" class="cancel" id="cancelDialog">取消</button><button class="primary" type="submit">加入清單</button></div></form></dialog>
-<script>
-  const today = new Date(2026,9,30); today.setHours(0,0,0,0);
-  let selected = new Date(today), viewed = new Date(today);
-  const keyDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const dateFrom = s => {const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
-  const weekday = d => '日一二三四五六'[d.getDay()];
-  const fmtDay = d => `${d.getMonth()+1} 月 ${d.getDate()} 日`;
-  const same = (a,b)=>keyDate(a)===keyDate(b);
-  let items = [
-    {id:1,date:'2026-10-30',time:'09:00',title:'晨間伸展與閱讀',type:'task',done:true,priority:'一般'},
-    {id:2,date:'2026-10-30',time:'10:30',title:'產品設計週會',type:'event',done:false,priority:'一般'},
-    {id:3,date:'2026-10-30',time:'13:00',title:'完成首頁線框稿',type:'task',done:false,priority:'高'},
-    {id:4,date:'2026-10-30',time:'15:30',title:'和怡君喝咖啡',type:'event',done:false,priority:'一般'},
-    {id:5,date:'2026-10-30',time:'17:00',title:'整理本週工作筆記',type:'task',done:true,priority:'低'},
-    {id:6,date:'2026-10-31',time:'11:00',title:'採買週末食材',type:'task',done:false,priority:'一般'},
-    {id:7,date:'2026-11-02',time:'09:30',title:'牙醫回診',type:'event',done:false,priority:'一般'},
-    {id:8,date:'2026-11-02',time:'14:00',title:'提交專案提案',type:'task',done:false,priority:'高'},
-    {id:9,date:'2026-11-06',time:'18:30',title:'晚餐｜家人聚會',type:'event',done:false,priority:'一般'},
-    {id:10,date:'2026-10-28',time:'16:00',title:'寄出會議摘要',type:'task',done:true,priority:'一般'},
-  ];
-  let habits=[{name:'喝足 8 杯水',icon:'💧',done:true,streak:'連續 5 天'},{name:'閱讀 20 分鐘',icon:'📖',done:false,streak:'連續 3 天'},{name:'伸展運動',icon:'🧘',done:true,streak:'連續 2 天'}];
-  const $=s=>document.querySelector(s); const $$=s=>document.querySelectorAll(s);
-  const toast=(msg)=>{const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>el.classList.remove('show'),2200)};
-  function renderHeader(){ $('#fullDate').textContent=`星期${weekday(today)}・${today.getFullYear()} 年 ${today.getMonth()+1} 月 ${today.getDate()} 日`; $('#dayName').textContent=`星期${weekday(selected)}`;$('#dayDate').textContent=fmtDay(selected); }
-  function renderItems(){const list=items.filter(x=>x.date===keyDate(selected)).sort((a,b)=>a.time.localeCompare(b.time));$('#itemList').innerHTML=list.map(x=>`<div class="item"><span class="time">${x.time}</span><input class="check" type="checkbox" data-id="${x.id}" ${x.done?'checked':''} aria-label="完成${x.title}"><div><div class="item-title">${x.priority==='高'&&!x.done?'<span class="priority">▲ 高</span>':''}${x.title}</div><div class="item-meta">${x.type==='event'?'行程':'待辦任務'}${x.type==='task'?'・截止 '+fmtDay(dateFrom(x.date)):''}</div></div><div class="item-actions"><span class="tag ${x.type}">${x.type==='event'?'行程':'任務'}</span><button class="delete-btn" data-delete="${x.id}" aria-label="刪除${x.title}" title="刪除">×</button></div></div>`).join('')||'<div class="subtle" style="text-align:center;padding:24px">今天還沒有安排，留一點空白也很好 🌿</div>';const done=list.filter(x=>x.done).length;$('#progressLabel').textContent=`${done} / ${list.length} 完成`;$('#progressBar').style.width=list.length?`${done/list.length*100}%`:'0%';$$('.check').forEach(c=>c.addEventListener('change',()=>{const item=items.find(x=>x.id==c.dataset.id);item.done=c.checked;renderItems();renderCalendar();toast(c.checked?'已完成，做得好！':'已恢復為未完成')}));$$('[data-delete]').forEach(b=>b.addEventListener('click',()=>{const item=items.find(x=>x.id==b.dataset.delete);if(item&&confirm(`確定要刪除「${item.title}」嗎？`)){items=items.filter(x=>x.id!==item.id);renderItems();renderCalendar();toast('項目已刪除')}}));renderCalendar(); }
-  function renderCalendar(){const y=viewed.getFullYear(),m=viewed.getMonth();$('#monthTitle').textContent=`${y} 年 ${m+1} 月`;const first=new Date(y,m,1),offset=first.getDay(),days=new Date(y,m+1,0).getDate(),prevDays=new Date(y,m,0).getDate();let html='';for(let r=0;r<6;r++){html+='<tr>';for(let c=0;c<7;c++){let ix=r*7+c-offset+1,d,muted=false;if(ix<1){d=new Date(y,m-1,prevDays+ix);muted=true}else if(ix>days){d=new Date(y,m+1,ix-days);muted=true}else d=new Date(y,m,ix);const key=keyDate(d),dayitems=items.filter(x=>x.date===key),classes=[muted?'muted':'',same(d,today)?'today':'',same(d,selected)?'selected':''].join(' ');html+=`<td class="${classes}" data-date="${key}"><span class="num">${d.getDate()}</span><span class="dots">${dayitems.slice(0,3).map(x=>`<i class="${x.type==='task'?'taskdot':''}"></i>`).join('')}</span></td>`}html+='</tr>';if(r===4&&offset+days<=35)break}$('#calendarBody').innerHTML=html;$$('#calendarBody td').forEach(td=>td.addEventListener('click',()=>{selected=dateFrom(td.dataset.date);viewed=new Date(selected);render();}));const preview=items.filter(x=>x.date===keyDate(selected)).sort((a,b)=>a.time.localeCompare(b.time));$('#previewDate').textContent=`${fmtDay(selected)}${same(selected,today)?'・今日':''}`;$('#previewCount').textContent=`${preview.length} 項`;$('#previewLines').innerHTML=preview.slice(0,3).map(x=>`<div class="preview-line"><b>${x.time}</b>${x.title}</div>`).join('')||'<div class="preview-line">尚無安排</div>';}
-  function renderHabits(){ $('#habitList').innerHTML=habits.map((h,i)=>`<div class="habit"><div class="habit-top"><span>${h.name}</span><span class="habit-icon">${h.icon}</span></div><div style="display:flex;align-items:center;justify-content:space-between"><small>${h.streak}</small><input type="checkbox" data-habit="${i}" ${h.done?'checked':''} aria-label="${h.name}完成"></div></div>`).join('');$$('[data-habit]').forEach(c=>c.addEventListener('change',()=>{habits[+c.dataset.habit].done=c.checked;renderHabits();toast(c.checked?'習慣已打卡 🌱':'已取消打卡')}));$('#weekCount').textContent=habits.filter(h=>h.done).length+2;}
-  function render(){renderHeader();renderItems();renderHabits();}
-  $('#prevDay').onclick=()=>{selected.setDate(selected.getDate()-1);viewed=new Date(selected);render()};$('#nextDay').onclick=()=>{selected.setDate(selected.getDate()+1);viewed=new Date(selected);render()};$('#prevMonth').onclick=()=>{viewed.setMonth(viewed.getMonth()-1);renderCalendar()};$('#nextMonth').onclick=()=>{viewed.setMonth(viewed.getMonth()+1);renderCalendar()};$('#todayJump').onclick=()=>{selected=new Date(today);viewed=new Date(today);render()};
-  const dialog=$('#addDialog');function openDialog(){ $('#itemDate').value=keyDate(selected);dialog.showModal();$('#itemTitle').focus() }$('#addBtn').onclick=openDialog;$('#addTaskInline').onclick=openDialog;$('#closeDialog').onclick=()=>dialog.close();$('#cancelDialog').onclick=()=>dialog.close();$('#itemForm').addEventListener('submit',e=>{e.preventDefault();items.push({id:Date.now(),title:$('#itemTitle').value.trim(),type:$('#itemType').value,date:$('#itemDate').value,time:$('#itemTime').value||'09:00',priority:$('#itemPriority').value,done:false});selected=dateFrom($('#itemDate').value);viewed=new Date(selected);dialog.close();e.target.reset();$('#itemTime').value='10:00';render();toast('已加入今日安排')});
-  $('#closeReminder').onclick=()=>$('#reminderBox').remove();$('#bell').onclick=()=>{const box=$('#reminderBox');if(box){box.scrollIntoView({behavior:'smooth',block:'center'});box.style.outline='2px solid #f3c59d';setTimeout(()=>box.style.outline='',900)}else toast('目前沒有新的提醒')};$('#habitLink').onclick=()=>toast('這裡可以查看每日習慣紀錄');$$('.nav button').forEach(b=>b.onclick=()=>{ $$('.nav button').forEach(n=>n.classList.remove('active'));b.classList.add('active');const target=b.dataset.view==='calendar'?'calendarCard':b.dataset.view==='habits'?'habitsCard':'todayCard';document.getElementById(target).scrollIntoView({behavior:'smooth',block:'start'})});
-  $('#weekDots').innerHTML=Array.from({length:7},(_,i)=>`<span class="${i<4?'on':''} ${i===5?'today':''}"></span>`).join('');render();
-</script>
+<script type="module" src="./app.js"></script>
 </body>
 </html>

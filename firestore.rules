@@ -1,0 +1,127 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Assumed model: users/{uid} stores only uid, display name, initialization state,
+    // and timestamps.
+    // users/{uid}/items/{itemId} stores date, time, title, type, done, priority,
+    // and timestamps. users/{uid}/habits/{habitId} stores name, icon, done,
+    // streak, and timestamps. All documents are private to their owner.
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function uidUnchanged() {
+      return request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return request.resource.data.uid == resource.data.uid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function validString(value, minLength, maxLength) {
+      return value is string && value.size() >= minLength && value.size() <= maxLength;
+    }
+
+    function isRecent(value) {
+      return value is timestamp && value > request.time - duration.value(5, 'm') && value <= request.time;
+    }
+
+    function parentProfileExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    function isValidProfile(data) {
+      return data.keys().hasAll(['uid', 'name', 'initialized', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'name', 'initialized', 'createdAt', 'updatedAt']) &&
+        data.uid is string && validString(data.name, 1, 100) &&
+        data.initialized is bool &&
+        data.createdAt is timestamp && data.updatedAt is timestamp;
+    }
+
+    function isValidItem(data) {
+      return data.keys().hasAll(['uid', 'date', 'time', 'title', 'type', 'done', 'priority', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'date', 'time', 'title', 'type', 'done', 'priority', 'createdAt', 'updatedAt']) &&
+        data.uid is string &&
+        data.date is string && data.date.matches('^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$') &&
+        data.time is string && data.time.matches('^([01]\\d|2[0-3]):[0-5]\\d$') &&
+        validString(data.title, 1, 120) && data.type in ['task', 'event'] &&
+        data.done is bool && data.priority in ['一般', '高', '低'] &&
+        data.createdAt is timestamp && data.updatedAt is timestamp;
+    }
+
+    function isValidHabit(data) {
+      return data.keys().hasAll(['uid', 'name', 'icon', 'done', 'streak', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'name', 'icon', 'done', 'streak', 'createdAt', 'updatedAt']) &&
+        data.uid is string && validString(data.name, 1, 80) &&
+        validString(data.icon, 1, 16) && data.done is bool &&
+        validString(data.streak, 0, 40) &&
+        data.createdAt is timestamp && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && uidUnchanged() &&
+        hasRequiredFields(['uid', 'name', 'initialized', 'createdAt', 'updatedAt']) &&
+        isValidProfile(request.resource.data) &&
+        isRecent(request.resource.data.createdAt) &&
+        request.resource.data.updatedAt == request.time;
+      allow update: if isOwner(userId) && isDocOwner() && uidNotModified() &&
+        hasRequiredFields(['uid', 'name', 'initialized', 'createdAt', 'updatedAt']) &&
+        isValidProfile(request.resource.data) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'initialized', 'updatedAt']) &&
+        (!resource.data.initialized || request.resource.data.initialized) &&
+        request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+
+      match /items/{itemId} {
+        allow get, list: if isOwner(userId) && parentProfileExists(userId);
+        allow create: if isOwner(userId) && parentProfileExists(userId) &&
+          hasRequiredFields(['uid', 'date', 'time', 'title', 'type', 'done', 'priority', 'createdAt', 'updatedAt']) &&
+          uidUnchanged() && isValidItem(request.resource.data) &&
+          isRecent(request.resource.data.createdAt) &&
+          request.resource.data.updatedAt == request.time;
+        allow update: if isOwner(userId) && isDocOwner() && parentProfileExists(userId) &&
+          hasRequiredFields(['uid', 'date', 'time', 'title', 'type', 'done', 'priority', 'createdAt', 'updatedAt']) &&
+          uidNotModified() && isValidItem(request.resource.data) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['date', 'time', 'title', 'type', 'done', 'priority', 'updatedAt']) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt == request.time;
+        allow delete: if isOwner(userId) && isDocOwner() && parentProfileExists(userId);
+      }
+
+      match /habits/{habitId} {
+        allow get, list: if isOwner(userId) && parentProfileExists(userId);
+        allow create: if isOwner(userId) && parentProfileExists(userId) &&
+          hasRequiredFields(['uid', 'name', 'icon', 'done', 'streak', 'createdAt', 'updatedAt']) &&
+          uidUnchanged() && isValidHabit(request.resource.data) &&
+          isRecent(request.resource.data.createdAt) &&
+          request.resource.data.updatedAt == request.time;
+        allow update: if isOwner(userId) && isDocOwner() && parentProfileExists(userId) &&
+          hasRequiredFields(['uid', 'name', 'icon', 'done', 'streak', 'createdAt', 'updatedAt']) &&
+          uidNotModified() && isValidHabit(request.resource.data) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done', 'updatedAt']) &&
+          request.resource.data.createdAt == resource.data.createdAt &&
+          request.resource.data.updatedAt == request.time;
+        allow delete: if isOwner(userId) && isDocOwner() && parentProfileExists(userId);
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
