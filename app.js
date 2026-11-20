@@ -5,8 +5,10 @@ import {
   GoogleAIBackend,
 } from "firebase/ai";
 import {
+  getRedirectResult,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
   signOut,
 } from "firebase/auth";
 import {
@@ -419,17 +421,39 @@ function render() {
   renderHabits();
 }
 
+function getSignInErrorMessage(error) {
+  const messages = {
+    "auth/unauthorized-domain": "此網站網域尚未加入 Firebase Authentication 的授權網域。",
+    "auth/operation-not-allowed": "Firebase 尚未啟用 Google 登入，請檢查 Authentication 的登入方式設定。",
+    "auth/popup-closed-by-user": "登入視窗已關閉，請再按一次「使用 Google 登入」。",
+    "auth/network-request-failed": "網路連線失敗，請確認網路後重試。",
+  };
+  return `${messages[error.code] || "Google 登入失敗，請稍後再試。"} (${error.code || "unknown"})`;
+}
+
 $("#googleSignInBtn").addEventListener("click", async () => {
   $("#authError").textContent = "";
   try {
     await signInWithPopup(auth, googleProvider);
   } catch (error) {
     console.error("Google sign-in failed", error);
-    $("#authError").textContent =
-      error.code === "auth/unauthorized-domain"
-        ? "此網站網域尚未加入 Firebase Authentication 的授權網域。"
-        : "登入失敗，請稍後再試。";
+    if (error.code === "auth/popup-blocked") {
+      try {
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      } catch (redirectError) {
+        console.error("Google redirect sign-in failed", redirectError);
+        $("#authError").textContent = getSignInErrorMessage(redirectError);
+        return;
+      }
+    }
+    $("#authError").textContent = getSignInErrorMessage(error);
   }
+});
+
+getRedirectResult(auth).catch((error) => {
+  console.error("Google redirect sign-in result failed", error);
+  $("#authError").textContent = getSignInErrorMessage(error);
 });
 
 $("#signOutBtn").addEventListener("click", async () => {
